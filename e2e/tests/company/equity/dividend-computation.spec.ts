@@ -6,8 +6,8 @@ import { usersFactory } from "@test/factories/users";
 import { userComplianceInfoFactory } from "@test/factories/userComplianceInfo";
 import { shareClassesFactory } from "@test/factories/shareClasses";
 import { login } from "@test/helpers/auth";
-import { expect, test, Page } from "@test/index";
-import { dividendRounds, dividends, dividendPayments } from "@/db/schema";
+import { expect, test, Page as _Page } from "@test/index";
+import { dividendRounds, dividends, dividendPayments as _dividendPayments } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 
 test.describe("Dividend Computation", () => {
@@ -84,7 +84,7 @@ test.describe("Dividend Computation", () => {
     await expect(page.getByText("This is a dividend distribution (taxable)")).toBeVisible();
 
     // Set issuance date
-    await page.getByRole("button", { name: /Issuance date/i }).click();
+    await page.getByRole("button", { name: /Issuance date/iu }).click();
     // Select today's date
     await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
 
@@ -131,12 +131,12 @@ test.describe("Dividend Computation", () => {
     await expect(page.getByText("This is a dividend distribution (taxable)")).toBeVisible();
 
     // Toggle to return of capital
-    await page.getByRole("switch", { name: /Dividend payment/i }).click();
+    await page.getByRole("switch", { name: /Dividend payment/iu }).click();
     await expect(page.getByText("This is a return of capital (may reduce cost basis)")).toBeVisible();
 
     // Fill other fields and preview
     await page.getByLabel("Total dividend amount").fill("5000");
-    await page.getByRole("button", { name: /Issuance date/i }).click();
+    await page.getByRole("button", { name: /Issuance date/iu }).click();
     await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
     await page.getByRole("button", { name: "Preview allocations" }).click();
 
@@ -152,7 +152,7 @@ test.describe("Dividend Computation", () => {
     await page.getByRole("link", { name: "Dividend computation" }).click();
 
     // Try to preview without entering amount
-    await page.getByRole("button", { name: /Issuance date/i }).click();
+    await page.getByRole("button", { name: /Issuance date/iu }).click();
     await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
 
     // Button should be disabled
@@ -175,7 +175,7 @@ test.describe("Dividend Computation", () => {
 
     // Fill form and preview
     await page.getByLabel("Total dividend amount").fill("8000");
-    await page.getByRole("button", { name: /Issuance date/i }).click();
+    await page.getByRole("button", { name: /Issuance date/iu }).click();
     await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
     await page.getByRole("button", { name: "Preview allocations" }).click();
 
@@ -192,7 +192,7 @@ test.describe("Dividend Computation", () => {
 
   test("shows appropriate message when no shareholders exist", async ({ page }) => {
     // Create company without shareholders
-    const { company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
+    const { company: _company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
 
     await login(page, adminUser);
     await page.getByRole("button", { name: "Equity" }).click();
@@ -200,7 +200,7 @@ test.describe("Dividend Computation", () => {
 
     // Fill form and preview
     await page.getByLabel("Total dividend amount").fill("5000");
-    await page.getByRole("button", { name: /Issuance date/i }).click();
+    await page.getByRole("button", { name: /Issuance date/iu }).click();
     await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
     await page.getByRole("button", { name: "Preview allocations" }).click();
 
@@ -214,7 +214,7 @@ test.describe("Dividend Computation", () => {
 
   test.describe("Tax Withholding Scenarios", () => {
     test("correctly calculates tax withholding for different countries", async ({ page }) => {
-      const { company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
+      const { company: _company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
 
       // Create share classes
       const commonShareClass = await shareClassesFactory.create({
@@ -258,7 +258,7 @@ test.describe("Dividend Computation", () => {
       await page.getByRole("link", { name: "Dividend computation" }).click();
 
       await page.getByLabel("Total dividend amount").fill("50000");
-      await page.getByRole("button", { name: /Issuance date/i }).click();
+      await page.getByRole("button", { name: /Issuance date/iu }).click();
       await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
       await page.getByRole("button", { name: "Preview allocations" }).click();
 
@@ -274,7 +274,7 @@ test.describe("Dividend Computation", () => {
     });
 
     test("handles sanctioned countries correctly", async ({ page }) => {
-      const { company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
+      const { company: _company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
 
       // Create investor from sanctioned country
       const { user: sanctionedUser } = await usersFactory.create();
@@ -300,17 +300,17 @@ test.describe("Dividend Computation", () => {
       await page.getByRole("link", { name: "Dividend computation" }).click();
 
       await page.getByLabel("Total dividend amount").fill("10000");
-      await page.getByRole("button", { name: /Issuance date/i }).click();
+      await page.getByRole("button", { name: /Issuance date/iu }).click();
       await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
       await page.getByRole("button", { name: "Preview allocations" }).click();
 
       // Verify sanctioned status
-      const row = page.getByRole("row", { name: new RegExp(sanctionedUser.name) });
+      const row = page.getByRole("row", { name: new RegExp(sanctionedUser.name, "u") });
       await expect(row.getByText("Retained")).toBeVisible();
 
       // Hover over status to see tooltip
       await row.getByText("Retained").hover();
-      await expect(page.getByText(/sanctions imposed/)).toBeVisible();
+      await expect(page.getByText(/sanctions imposed/u)).toBeVisible();
 
       // Create dividend round
       await page.getByRole("button", { name: "Create dividend round" }).click();
@@ -327,7 +327,7 @@ test.describe("Dividend Computation", () => {
 
   test.describe("Payment Processing", () => {
     test("processes payments after dividend creation", async ({ page }) => {
-      const { company, user: adminUser, investors } = await setup();
+      const { company: _company, user: adminUser, investors } = await setup();
 
       // Set up bank accounts for investors
       for (const investor of investors) {
@@ -342,7 +342,7 @@ test.describe("Dividend Computation", () => {
       await page.getByRole("link", { name: "Dividend computation" }).click();
 
       await page.getByLabel("Total dividend amount").fill("100000");
-      await page.getByRole("button", { name: /Issuance date/i }).click();
+      await page.getByRole("button", { name: /Issuance date/iu }).click();
       await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
       await page.getByRole("button", { name: "Preview allocations" }).click();
       await page.getByRole("button", { name: "Create dividend round" }).click();
@@ -371,7 +371,7 @@ test.describe("Dividend Computation", () => {
     });
 
     test("handles minimum payment threshold", async ({ page }) => {
-      const { company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
+      const { company: _company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
 
       // Create investor with high minimum threshold
       const { user: investorUser } = await usersFactory.create({
@@ -394,30 +394,30 @@ test.describe("Dividend Computation", () => {
       await page.getByRole("link", { name: "Dividend computation" }).click();
 
       await page.getByLabel("Total dividend amount").fill("1000");
-      await page.getByRole("button", { name: /Issuance date/i }).click();
+      await page.getByRole("button", { name: /Issuance date/iu }).click();
       await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
       await page.getByRole("button", { name: "Preview allocations" }).click();
 
       // Should show below threshold status
-      const row = page.getByRole("row", { name: new RegExp(investorUser.name) });
+      const row = page.getByRole("row", { name: new RegExp(investorUser.name, "u") });
       await expect(row.getByText("Below threshold")).toBeVisible();
 
       // Hover to see minimum amount
       await row.getByText("Below threshold").hover();
-      await expect(page.getByText(/minimum payout threshold of \$100\.00/)).toBeVisible();
+      await expect(page.getByText(/minimum payout threshold of \$100\.00/u)).toBeVisible();
     });
   });
 
   test.describe("Email Notifications", () => {
     test("sends notification emails when dividends are issued", async ({ page }) => {
-      const { adminUser, investors } = await setup();
+      const { adminUser, investors: _investors } = await setup();
 
       await login(page, adminUser);
       await page.getByRole("button", { name: "Equity" }).click();
       await page.getByRole("link", { name: "Dividend computation" }).click();
 
       await page.getByLabel("Total dividend amount").fill("50000");
-      await page.getByRole("button", { name: /Issuance date/i }).click();
+      await page.getByRole("button", { name: /Issuance date/iu }).click();
       await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
       await page.getByRole("button", { name: "Preview allocations" }).click();
       await page.getByRole("button", { name: "Create dividend round" }).click();
@@ -431,33 +431,33 @@ test.describe("Dividend Computation", () => {
 
   test.describe("Authorization and Security", () => {
     test("prevents non-admin access to dividend computation", async ({ page }) => {
-      const { company, investors } = await setup();
+      const { company: _company, investors } = await setup();
 
       // Try to access as investor
       await login(page, investors[0].user);
       await page.goto(`/company/${company.externalId}/administrator/equity/dividend_computation`);
 
       // Should be redirected or show error
-      await expect(page).not.toHaveURL(/dividend_computation/);
-      await expect(page.getByText(/not authorized/i)).toBeVisible();
+      await expect(page).not.toHaveURL(/dividend_computation/u);
+      await expect(page.getByText(/not authorized/iu)).toBeVisible();
     });
 
     test("prevents cross-company access", async ({ page }) => {
       const { company: company1 } = await setup();
-      const { company: company2, user: admin2 } = await companiesFactory.createCompletedOnboarding();
+      const { company: _company2, user: admin2 } = await companiesFactory.createCompletedOnboarding();
 
       await login(page, admin2);
 
       // Try to access company1's dividend computation
       await page.goto(`/company/${company1.externalId}/administrator/equity/dividend_computation`);
 
-      await expect(page.getByText(/not authorized/i)).toBeVisible();
+      await expect(page.getByText(/not authorized/iu)).toBeVisible();
     });
   });
 
   test.describe("Qualified Dividends", () => {
     test("marks long-held shares as qualified", async ({ page }) => {
-      const { company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
+      const { company: _company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
 
       // Create investors with shares held for different periods
       const longTermInvestor = await createInvestorWithShares(company, {
@@ -475,34 +475,34 @@ test.describe("Dividend Computation", () => {
       await page.getByRole("link", { name: "Dividend computation" }).click();
 
       await page.getByLabel("Total dividend amount").fill("20000");
-      await page.getByRole("button", { name: /Issuance date/i }).click();
+      await page.getByRole("button", { name: /Issuance date/iu }).click();
       await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
       await page.getByRole("button", { name: "Preview allocations" }).click();
 
       // Long-term investor should have qualified indicator
-      const longTermRow = page.getByRole("row", { name: new RegExp(longTermInvestor.user.name) });
+      const longTermRow = page.getByRole("row", { name: new RegExp(longTermInvestor.user.name, "u") });
       await expect(longTermRow.getByTestId("qualified-indicator")).toBeVisible();
 
       // Short-term investor should not
-      const shortTermRow = page.getByRole("row", { name: new RegExp(shortTermInvestor.user.name) });
+      const shortTermRow = page.getByRole("row", { name: new RegExp(shortTermInvestor.user.name, "u") });
       await expect(shortTermRow.getByTestId("qualified-indicator")).not.toBeVisible();
     });
   });
 
   test.describe("Return of Capital", () => {
     test("processes return of capital without tax withholding", async ({ page }) => {
-      const { adminUser, investors } = await setup();
+      const { adminUser, investors: _investors } = await setup();
 
       await login(page, adminUser);
       await page.getByRole("button", { name: "Equity" }).click();
       await page.getByRole("link", { name: "Dividend computation" }).click();
 
       // Toggle to return of capital
-      await page.getByRole("switch", { name: /Dividend payment/i }).click();
+      await page.getByRole("switch", { name: /Dividend payment/iu }).click();
       await expect(page.getByText("This is a return of capital")).toBeVisible();
 
       await page.getByLabel("Total dividend amount").fill("30000");
-      await page.getByRole("button", { name: /Issuance date/i }).click();
+      await page.getByRole("button", { name: /Issuance date/iu }).click();
       await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
       await page.getByRole("button", { name: "Preview allocations" }).click();
 
@@ -530,10 +530,10 @@ test.describe("Dividend Computation", () => {
 
   test.describe("Performance", () => {
     test("handles large number of investors efficiently", async ({ page }) => {
-      const { company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
+      const { company: _company, user: adminUser } = await companiesFactory.createCompletedOnboarding();
 
       // Create 50 investors
-      const investorPromises = Array.from({ length: 50 }, async (_, i) => {
+      const investorPromises = Array.from({ length: 50 }, async (_, _i) => {
         const { user } = await usersFactory.create();
         const { companyInvestor } = await companyInvestorsFactory.create({
           companyId: company.id,
@@ -554,7 +554,7 @@ test.describe("Dividend Computation", () => {
       await page.getByRole("link", { name: "Dividend computation" }).click();
 
       await page.getByLabel("Total dividend amount").fill("1000000");
-      await page.getByRole("button", { name: /Issuance date/i }).click();
+      await page.getByRole("button", { name: /Issuance date/iu }).click();
       await page.getByRole("gridcell", { name: new Date().getDate().toString() }).first().click();
 
       // Measure time to compute
@@ -567,13 +567,13 @@ test.describe("Dividend Computation", () => {
       expect(endTime - startTime).toBeLessThan(10000);
 
       // Should show pagination
-      await expect(page.getByText(/Showing \d+-\d+ of 50/)).toBeVisible();
+      await expect(page.getByText(/Showing \d+-\d+ of 50/u)).toBeVisible();
     });
   });
 });
 
 // Helper function to create investor with shares
-async function createInvestorWithShares(company: any, options: { shares: bigint; createdAt?: Date }) {
+async function createInvestorWithShares(company: unknown, options: { shares: bigint; createdAt?: Date }) {
   const { user } = await usersFactory.create();
   const { companyInvestor } = await companyInvestorsFactory.create({
     companyId: company.id,

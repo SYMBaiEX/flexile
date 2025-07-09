@@ -125,13 +125,30 @@ export default [
       "eslint.config.js",
       "frontend/next.config.ts",
       "frontend/drizzle.config.js",
+      "frontend/jest.config.js",
       "playwright.config.ts",
       "docker/createCertificate.js",
     ],
     languageOptions: {
-      globals: globals.node,
+      globals: { ...globals.node, ...globals.jest },
     },
     extends: [tseslint.configs.base, tseslint.configs.disableTypeChecked],
+  }),
+  ...tseslint.config({
+    files: ["frontend/jest.setup.js"],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.jest, ...globals.browser },
+      parserOptions: {
+        ecmaFeatures: {
+          jsx: true,
+        },
+      },
+    },
+    extends: [tseslint.configs.base, tseslint.configs.disableTypeChecked],
+    rules: {
+      "no-console": "off",
+      "@next/next/no-img-element": "off", // Allow <img> in test mocks
+    },
   }),
   ...tseslint.config({
     files: ["e2e/**/*.ts"],

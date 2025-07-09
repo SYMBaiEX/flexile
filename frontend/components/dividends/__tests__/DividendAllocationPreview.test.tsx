@@ -1,9 +1,9 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent as _fireEvent, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DividendAllocationPreview } from "../DividendAllocationPreview";
 
 // Mock the tRPC hooks
-jest.mock("@/trpc/react", () => ({
+const mockApi = {
   api: {
     dividends: {
       createRound: {
@@ -15,7 +15,9 @@ jest.mock("@/trpc/react", () => ({
       },
     },
   },
-}));
+};
+
+jest.mock("@/trpc/react", () => mockApi);
 
 describe("DividendAllocationPreview", () => {
   const mockAllocations = [
@@ -118,7 +120,7 @@ describe("DividendAllocationPreview", () => {
     render(<DividendAllocationPreview {...mockProps} />);
 
     // Check John Doe's row
-    const johnRow = screen.getByRole("row", { name: /John Doe/ });
+    const johnRow = screen.getByRole("row", { name: /John Doe/u });
     within(johnRow).getByText("John Doe");
     within(johnRow).getByText("1,000");
     within(johnRow).getByText("Common");
@@ -131,7 +133,7 @@ describe("DividendAllocationPreview", () => {
     expect(within(johnRow).getByTestId("qualified-indicator")).toBeInTheDocument();
 
     // Check Jane Smith's row
-    const janeRow = screen.getByRole("row", { name: /Jane Smith/ });
+    const janeRow = screen.getByRole("row", { name: /Jane Smith/u });
     within(janeRow).getByText("Jane Smith");
     within(janeRow).getByText("2,000");
     within(janeRow).getByText("Series A Preferred");
@@ -150,21 +152,21 @@ describe("DividendAllocationPreview", () => {
     const user = userEvent.setup();
 
     // Check retained investor
-    const bobRow = screen.getByRole("row", { name: /Bob Johnson/ });
+    const bobRow = screen.getByRole("row", { name: /Bob Johnson/u });
     const retainedButton = within(bobRow).getByRole("button", { name: "Retained" });
     expect(retainedButton).toBeInTheDocument();
 
     // Hover to see tooltip
     await user.hover(retainedButton);
-    expect(screen.getByText(/sanctions imposed on.*residence country/)).toBeInTheDocument();
+    expect(screen.getByText(/sanctions imposed on.*residence country/u)).toBeInTheDocument();
 
     // Check below threshold investor
-    const aliceRow = screen.getByRole("row", { name: /Alice Brown/ });
+    const aliceRow = screen.getByRole("row", { name: /Alice Brown/u });
     const thresholdButton = within(aliceRow).getByRole("button", { name: "Below threshold" });
     expect(thresholdButton).toBeInTheDocument();
 
     await user.hover(thresholdButton);
-    expect(screen.getByText(/minimum payout threshold/)).toBeInTheDocument();
+    expect(screen.getByText(/minimum payout threshold/u)).toBeInTheDocument();
   });
 
   it("displays summary information correctly", () => {
@@ -232,7 +234,7 @@ describe("DividendAllocationPreview", () => {
 
   it("creates dividend round when confirmed", async () => {
     const mockMutate = jest.fn();
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.createRound.useMutation.mockReturnValue({
       mutate: mockMutate,
       isLoading: false,
@@ -260,7 +262,7 @@ describe("DividendAllocationPreview", () => {
   });
 
   it("shows loading state during creation", () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.createRound.useMutation.mockReturnValue({
       mutate: jest.fn(),
       isLoading: true,
@@ -274,7 +276,7 @@ describe("DividendAllocationPreview", () => {
   });
 
   it("shows error message when creation fails", () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.createRound.useMutation.mockReturnValue({
       mutate: jest.fn(),
       isLoading: false,
@@ -311,7 +313,7 @@ describe("DividendAllocationPreview", () => {
     render(<DividendAllocationPreview {...mockProps} allocations={manyAllocations} summary={largeSummary} />);
 
     // Should show pagination
-    expect(screen.getByText(/Showing \d+-\d+ of 50/)).toBeInTheDocument();
+    expect(screen.getByText(/Showing \d+-\d+ of 50/u)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
   });
 

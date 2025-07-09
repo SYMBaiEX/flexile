@@ -1,9 +1,9 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent as _fireEvent, waitFor as _waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DividendComputationForm } from "../DividendComputationForm";
 
 // Mock the tRPC hooks
-jest.mock("@/trpc/react", () => ({
+const mockApi = {
   api: {
     dividends: {
       computePreview: {
@@ -22,11 +22,13 @@ jest.mock("@/trpc/react", () => ({
       },
     },
   },
-}));
+};
+
+jest.mock("@/trpc/react", () => mockApi);
 
 // Mock the date picker
 jest.mock("@/components/ui/DatePicker", () => ({
-  DatePicker: ({ onDateChange, placeholder }: any) => (
+  DatePicker: ({ onDateChange, placeholder }: { onDateChange?: (date: Date) => void; placeholder?: string }) => (
     <input
       data-testid="date-picker"
       placeholder={placeholder}
@@ -103,19 +105,19 @@ describe("DividendComputationForm", () => {
     expect(screen.getByText("This is a dividend distribution (taxable)")).toBeInTheDocument();
 
     // Toggle to return of capital
-    await user.click(screen.getByRole("switch", { name: /dividend payment/i }));
+    await user.click(screen.getByRole("switch", { name: /dividend payment/iu }));
 
     expect(screen.getByText("This is a return of capital (may reduce cost basis)")).toBeInTheDocument();
 
     // Toggle back
-    await user.click(screen.getByRole("switch", { name: /dividend payment/i }));
+    await user.click(screen.getByRole("switch", { name: /dividend payment/iu }));
 
     expect(screen.getByText("This is a dividend distribution (taxable)")).toBeInTheDocument();
   });
 
   it("calls preview mutation when preview button is clicked", async () => {
     const mockMutate = jest.fn();
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.computePreview.useMutation.mockReturnValue({
       mutate: mockMutate,
       isLoading: false,
@@ -143,7 +145,7 @@ describe("DividendComputationForm", () => {
   });
 
   it("shows loading state during preview", () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.computePreview.useMutation.mockReturnValue({
       mutate: jest.fn(),
       isLoading: true,
@@ -157,7 +159,7 @@ describe("DividendComputationForm", () => {
   });
 
   it("shows error message when preview fails", () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.computePreview.useMutation.mockReturnValue({
       mutate: jest.fn(),
       isLoading: false,
@@ -171,7 +173,7 @@ describe("DividendComputationForm", () => {
 
   it("includes description in API call when provided", async () => {
     const mockMutate = jest.fn();
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.computePreview.useMutation.mockReturnValue({
       mutate: mockMutate,
       isLoading: false,

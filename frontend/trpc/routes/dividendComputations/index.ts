@@ -11,6 +11,50 @@ import {
 } from "@/db/schema";
 import { companyProcedure, createRouter } from "@/trpc";
 
+// Define proper types for backend API responses
+interface BackendDividendOutput {
+  company_investor_external_id?: string;
+  investor_name?: string;
+  share_class: string;
+  number_of_shares: number;
+  hurdle_rate?: number;
+  original_issue_price_in_usd?: number;
+  preferred_dividend_amount_in_usd: number;
+  dividend_amount_in_usd: number;
+  total_amount_in_usd: number;
+  qualified_dividend_amount_usd: number;
+}
+
+interface BackendPreviewResponse {
+  total_amount_in_usd: number;
+  dividends_issuance_date: string;
+  return_of_capital: boolean;
+  outputs: BackendDividendOutput[];
+}
+
+interface DividendComputationOutput {
+  id: string;
+  companyInvestorId?: string;
+  investorName?: string;
+  investorEmail?: string;
+  shareClass: string;
+  numberOfShares: number;
+  hurdleRate?: number;
+  originalIssuePriceInUsd?: number;
+  preferredDividendAmountInUsd: number;
+  dividendAmountInUsd: number;
+  totalAmountInUsd: number;
+  qualifiedDividendAmountUsd: number;
+  companyInvestor?: {
+    externalId: string;
+    user?: {
+      firstName: string;
+      lastName: string;
+      email: string;
+    };
+  };
+}
+
 const dividendComputationOutputSchema = z.object({
   companyInvestorId: z.string().optional(),
   investorName: z.string().optional(),
@@ -50,7 +94,7 @@ export const dividendComputationsRouter = createRouter({
             returnOfCapital: input.returnOfCapital,
           })
           .returning();
-          
+
         if (!computation) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create dividend computation" });
         }
@@ -87,8 +131,12 @@ export const dividendComputationsRouter = createRouter({
 
         const outputs = await tx.insert(dividendComputationOutputs).values(outputsToInsert).returning();
 
+        if (!computation) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Computation not found after creation" });
+        }
+
         return {
-          ...computation!,
+          ...computation,
           outputs,
         };
       });
@@ -125,21 +173,54 @@ export const dividendComputationsRouter = createRouter({
       );
 
       if (!response.ok) {
-        const error = await response.json();
+        let errorMessage = "Failed to calculate dividend preview";
+        try {
+          const error = await response.json();
+          errorMessage =
+            typeof error === "object" && error !== null && "error_message" in error
+              ? String(error.error_message) || errorMessage
+              : errorMessage;
+        } catch {
+          // If we can't parse the error response, use the default message
+        }
         throw new TRPCError({
           code: "BAD_REQUEST",
-          message: error.error_message || "Failed to calculate dividend preview",
+          message: errorMessage,
         });
       }
 
       const data = await response.json();
 
+      // Type check the response data
+      const typedData: BackendPreviewResponse = (() => {
+        if (
+          typeof data === "object" &&
+          data !== null &&
+          "total_amount_in_usd" in data &&
+          "dividends_issuance_date" in data &&
+          "return_of_capital" in data &&
+          "outputs" in data &&
+          Array.isArray(data.outputs)
+        ) {
+          return {
+            total_amount_in_usd: String(data.total_amount_in_usd),
+            dividends_issuance_date: String(data.dividends_issuance_date),
+            return_of_capital: Boolean(data.return_of_capital),
+            outputs: data.outputs,
+          };
+        }
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: "Invalid response format from backend API",
+        });
+      })();
+
       // Transform the backend response to match our schema
       return {
-        totalAmountInUsd: data.total_amount_in_usd,
-        dividendsIssuanceDate: data.dividends_issuance_date,
-        returnOfCapital: data.return_of_capital,
-        outputs: data.outputs.map((output: any) => ({
+        totalAmountInUsd: typedData.total_amount_in_usd,
+        dividendsIssuanceDate: typedData.dividends_issuance_date,
+        returnOfCapital: typedData.return_of_capital,
+        outputs: typedData.outputs.map((output: BackendDividendOutput) => ({
           companyInvestorId: output.company_investor_external_id,
           investorName: output.investor_name,
           shareClass: output.share_class,
@@ -224,24 +305,28 @@ export const dividendComputationsRouter = createRouter({
       dividendsIssuanceDate: computation.dividendsIssuanceDate,
       returnOfCapital: computation.returnOfCapital,
       createdAt: computation.createdAt,
-      outputs: computation.outputs.map((output: any) => ({
-        id: output.id.toString(),
-        companyInvestorId: output.companyInvestor?.externalId,
-        investorName:
-          output.investorName ||
-          (output.companyInvestor?.user
-            ? `${output.companyInvestor.user.firstName} ${output.companyInvestor.user.lastName}`
-            : null),
-        investorEmail: output.companyInvestor?.user?.email,
-        shareClass: output.shareClass,
-        numberOfShares: Number(output.numberOfShares),
-        hurdleRate: output.hurdleRate ? parseFloat(output.hurdleRate) : null,
-        originalIssuePriceInUsd: output.originalIssuePriceInUsd ? parseFloat(output.originalIssuePriceInUsd) : null,
-        preferredDividendAmountInUsd: parseFloat(output.preferredDividendAmountInUsd),
-        dividendAmountInUsd: parseFloat(output.dividendAmountInUsd),
-        totalAmountInUsd: parseFloat(output.totalAmountInUsd),
-        qualifiedDividendAmountUsd: parseFloat(output.qualifiedDividendAmountUsd),
-      })),
+      outputs: computation.outputs.map(
+        (output): DividendComputationOutput => ({
+          id: output.id.toString(),
+          companyInvestorId: output.companyInvestor?.externalId,
+          investorName:
+            output.investorName ||
+            (output.companyInvestor?.user
+              ? `${output.companyInvestor.user.firstName} ${output.companyInvestor.user.lastName}`
+              : undefined),
+          investorEmail: output.companyInvestor?.user.email,
+          shareClass: output.shareClass,
+          numberOfShares: Number(output.numberOfShares),
+          hurdleRate: output.hurdleRate ? parseFloat(output.hurdleRate) : undefined,
+          originalIssuePriceInUsd: output.originalIssuePriceInUsd
+            ? parseFloat(output.originalIssuePriceInUsd)
+            : undefined,
+          preferredDividendAmountInUsd: parseFloat(output.preferredDividendAmountInUsd),
+          dividendAmountInUsd: parseFloat(output.dividendAmountInUsd),
+          totalAmountInUsd: parseFloat(output.totalAmountInUsd),
+          qualifiedDividendAmountUsd: parseFloat(output.qualifiedDividendAmountUsd),
+        }),
+      ),
     };
   }),
 
@@ -282,14 +367,14 @@ export const dividendComputationsRouter = createRouter({
             companyId: ctx.company.id,
             issuedAt: new Date(computation.dividendsIssuanceDate),
             numberOfShares: BigInt(computation.outputs.reduce((sum, o) => sum + Number(o.numberOfShares), 0)),
-            numberOfShareholders: BigInt(new Set(computation.outputs.map((o: any) => o.companyInvestorId)).size),
+            numberOfShareholders: BigInt(new Set(computation.outputs.map((o) => o.companyInvestorId)).size),
             totalAmountInCents: BigInt(Math.round(parseFloat(computation.totalAmountInUsd) * 100)),
             status: "Pending signup" as const,
             returnOfCapital: computation.returnOfCapital,
             releaseDocument: input.releaseDocument,
           })
           .returning();
-          
+
         if (!dividendRound) {
           throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Failed to create dividend round" });
         }
@@ -299,7 +384,7 @@ export const dividendComputationsRouter = createRouter({
           .filter((output) => output.companyInvestorId !== null)
           .map((output) => ({
             companyId: ctx.company.id,
-            companyInvestorId: output.companyInvestorId!,
+            companyInvestorId: output.companyInvestorId || BigInt(0),
             dividendRoundId: dividendRound.id,
             numberOfShares: output.numberOfShares,
             totalAmountInCents: BigInt(Math.round(parseFloat(output.totalAmountInUsd) * 100)),
@@ -311,8 +396,12 @@ export const dividendComputationsRouter = createRouter({
 
         const createdDividends = await tx.insert(dividends).values(dividendsToInsert).returning();
 
+        if (!dividendRound) {
+          throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Dividend round not found after creation" });
+        }
+
         return {
-          dividendRoundId: dividendRound!.externalId,
+          dividendRoundId: dividendRound.externalId,
           numberOfDividends: createdDividends.length,
           totalAmount: parseFloat(computation.totalAmountInUsd),
         };

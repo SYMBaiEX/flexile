@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatMoneyFromCents } from "@/utils/formatMoney";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Banknote, Users, Receipt, Calculator } from "lucide-react";

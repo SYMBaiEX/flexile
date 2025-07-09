@@ -1,9 +1,9 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent as _fireEvent, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DividendRoundsList } from "../DividendRoundsList";
 
 // Mock the tRPC hooks
-jest.mock("@/trpc/react", () => ({
+const mockApi = {
   api: {
     dividends: {
       getRounds: {
@@ -18,15 +18,19 @@ jest.mock("@/trpc/react", () => ({
       },
     },
   },
-}));
+};
+
+jest.mock("@/trpc/react", () => mockApi);
 
 // Mock the router
-jest.mock("next/navigation", () => ({
+const mockRouter = {
   useRouter: jest.fn(() => ({
     push: jest.fn(),
     refresh: jest.fn(),
   })),
-}));
+};
+
+jest.mock("next/navigation", () => mockRouter);
 
 describe("DividendRoundsList", () => {
   const mockRounds = [
@@ -84,7 +88,7 @@ describe("DividendRoundsList", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.getRounds.useQuery.mockReturnValue({
       data: mockRounds,
       isLoading: false,
@@ -112,7 +116,7 @@ describe("DividendRoundsList", () => {
     render(<DividendRoundsList {...mockProps} />);
 
     // Check first round (Q4 2024)
-    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/ });
+    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/u });
     within(q4Row).getByText("Dec 1, 2024");
     within(q4Row).getByText("Q4 2024 dividend");
     within(q4Row).getByText("Dividend");
@@ -121,7 +125,7 @@ describe("DividendRoundsList", () => {
     within(q4Row).getByText("Pending");
 
     // Check second round (Q3 2024)
-    const q3Row = screen.getByRole("row", { name: /Q3 2024 dividend/ });
+    const q3Row = screen.getByRole("row", { name: /Q3 2024 dividend/u });
     within(q3Row).getByText("Sep 1, 2024");
     within(q3Row).getByText("Q3 2024 dividend");
     within(q3Row).getByText("Dividend");
@@ -130,7 +134,7 @@ describe("DividendRoundsList", () => {
     within(q3Row).getByText("Completed");
 
     // Check third round (Return of capital)
-    const rocRow = screen.getByRole("row", { name: /return of capital/ });
+    const rocRow = screen.getByRole("row", { name: /return of capital/u });
     within(rocRow).getByText("Jun 1, 2024");
     within(rocRow).getByText("Q2 2024 return of capital");
     within(rocRow).getByText("Return of capital");
@@ -140,7 +144,7 @@ describe("DividendRoundsList", () => {
   });
 
   it("shows loading state", () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.getRounds.useQuery.mockReturnValue({
       data: undefined,
       isLoading: true,
@@ -153,7 +157,7 @@ describe("DividendRoundsList", () => {
   });
 
   it("shows error state", () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.getRounds.useQuery.mockReturnValue({
       data: undefined,
       isLoading: false,
@@ -166,7 +170,7 @@ describe("DividendRoundsList", () => {
   });
 
   it("shows empty state when no rounds", () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.getRounds.useQuery.mockReturnValue({
       data: [],
       isLoading: false,
@@ -182,7 +186,7 @@ describe("DividendRoundsList", () => {
 
   it("navigates to details when view button is clicked", async () => {
     const mockPush = jest.fn();
-    const { useRouter } = require("next/navigation");
+    const { useRouter } = mockRouter;
     useRouter.mockReturnValue({ push: mockPush, refresh: jest.fn() });
 
     render(<DividendRoundsList {...mockProps} />);
@@ -190,7 +194,7 @@ describe("DividendRoundsList", () => {
     const user = userEvent.setup();
 
     // Click view details button for first round
-    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/ });
+    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/u });
     await user.click(within(q4Row).getByRole("button", { name: "View details" }));
 
     expect(mockPush).toHaveBeenCalledWith("/company/test-company-id/administrator/equity/dividend_rounds/1");
@@ -198,7 +202,7 @@ describe("DividendRoundsList", () => {
 
   it("navigates to create page when create button is clicked", async () => {
     const mockPush = jest.fn();
-    const { useRouter } = require("next/navigation");
+    const { useRouter } = mockRouter;
     useRouter.mockReturnValue({ push: mockPush, refresh: jest.fn() });
 
     render(<DividendRoundsList {...mockProps} />);
@@ -213,10 +217,10 @@ describe("DividendRoundsList", () => {
   it("shows process payments button for pending rounds", () => {
     render(<DividendRoundsList {...mockProps} />);
 
-    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/ });
+    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/u });
     expect(within(q4Row).getByRole("button", { name: "Process payments" })).toBeInTheDocument();
 
-    const q3Row = screen.getByRole("row", { name: /Q3 2024 dividend/ });
+    const q3Row = screen.getByRole("row", { name: /Q3 2024 dividend/u });
     expect(within(q3Row).queryByRole("button", { name: "Process payments" })).not.toBeInTheDocument();
   });
 
@@ -225,7 +229,7 @@ describe("DividendRoundsList", () => {
 
     const user = userEvent.setup();
 
-    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/ });
+    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/u });
     await user.click(within(q4Row).getByRole("button", { name: "Process payments" }));
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
@@ -237,7 +241,7 @@ describe("DividendRoundsList", () => {
 
   it("processes payments when confirmed", async () => {
     const mockMutate = jest.fn();
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.processPayments.useMutation.mockReturnValue({
       mutate: mockMutate,
       isLoading: false,
@@ -249,7 +253,7 @@ describe("DividendRoundsList", () => {
     const user = userEvent.setup();
 
     // Open modal
-    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/ });
+    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/u });
     await user.click(within(q4Row).getByRole("button", { name: "Process payments" }));
 
     // Confirm processing
@@ -261,7 +265,7 @@ describe("DividendRoundsList", () => {
   });
 
   it("shows payment processing loading state", () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.processPayments.useMutation.mockReturnValue({
       mutate: jest.fn(),
       isLoading: true,
@@ -270,7 +274,7 @@ describe("DividendRoundsList", () => {
 
     render(<DividendRoundsList {...mockProps} />);
 
-    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/ });
+    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/u });
     expect(within(q4Row).getByText("Processing...")).toBeInTheDocument();
   });
 
@@ -324,7 +328,7 @@ describe("DividendRoundsList", () => {
       createdAt: new Date(`2024-${(i % 12) + 1}-01`),
     }));
 
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
     api.dividends.getRounds.useQuery.mockReturnValue({
       data: manyRounds,
       isLoading: false,
@@ -334,7 +338,7 @@ describe("DividendRoundsList", () => {
     render(<DividendRoundsList {...mockProps} />);
 
     // Should show pagination
-    expect(screen.getByText(/Showing \d+-\d+ of 25/)).toBeInTheDocument();
+    expect(screen.getByText(/Showing \d+-\d+ of 25/u)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
   });
 
@@ -358,7 +362,7 @@ describe("DividendRoundsList", () => {
     const user = userEvent.setup();
 
     // Hover over investor count
-    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/ });
+    const q4Row = screen.getByRole("row", { name: /Q4 2024 dividend/u });
     await user.hover(within(q4Row).getByText("25 investors"));
 
     // Should show breakdown

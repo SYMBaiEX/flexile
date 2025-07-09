@@ -72,7 +72,17 @@ export default function DividendComputation() {
   // Preview mutation - calculates dividend allocations without creating
   const previewMutation = trpc.dividendComputations.preview.useMutation({
     onSuccess: (data) => {
-      setPreviewData(data.outputs);
+      const transformedData: DividendPreview[] = data.outputs.map((output) => ({
+        investorId: output.companyInvestorId,
+        investorName: output.investorName || "Unknown",
+        numberOfShares: output.numberOfShares,
+        shareClass: output.shareClass,
+        totalAmountInUsd: output.totalAmountInUsd,
+        dividendAmountInUsd: output.dividendAmountInUsd,
+        preferredDividendAmountInUsd: output.preferredDividendAmountInUsd,
+        qualifiedDividendAmountUsd: output.qualifiedDividendAmountUsd,
+      }));
+      setPreviewData(transformedData);
       setShowPreview(true);
     },
   });

@@ -1,7 +1,7 @@
 "use client";
 import React, { useMemo } from "react";
 import DataTable, { createColumnHelper, useTable } from "@/components/DataTable";
-import { formatMoney, formatMoneyFromCents } from "@/utils/formatMoney";
+import { formatMoneyFromCents } from "@/utils/formatMoney";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import Status from "@/components/Status";

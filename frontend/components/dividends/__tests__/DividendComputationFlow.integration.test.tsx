@@ -1,9 +1,9 @@
-import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
+import { render, screen, fireEvent as _fireEvent, waitFor, within as _within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DividendComputationFlow } from "../DividendComputationFlow";
 
 // Mock the tRPC hooks with realistic responses
-jest.mock("@/trpc/react", () => ({
+const mockApi = {
   api: {
     dividends: {
       computePreview: {
@@ -14,7 +14,9 @@ jest.mock("@/trpc/react", () => ({
       },
     },
   },
-}));
+};
+
+jest.mock("@/trpc/react", () => mockApi);
 
 describe("DividendComputationFlow Integration", () => {
   const mockComputePreview = jest.fn();
@@ -80,7 +82,7 @@ describe("DividendComputationFlow Integration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
 
     // Setup compute preview mock
     api.dividends.computePreview.useMutation.mockReturnValue({
@@ -215,7 +217,7 @@ describe("DividendComputationFlow Integration", () => {
     const user = userEvent.setup();
 
     // Toggle to return of capital
-    await user.click(screen.getByRole("switch", { name: /dividend payment/i }));
+    await user.click(screen.getByRole("switch", { name: /dividend payment/iu }));
     expect(screen.getByText("This is a return of capital (may reduce cost basis)")).toBeInTheDocument();
 
     // Fill form
@@ -236,7 +238,7 @@ describe("DividendComputationFlow Integration", () => {
   });
 
   it("handles loading states correctly", async () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
 
     // Mock loading state for preview
     api.dividends.computePreview.useMutation.mockReturnValue({
@@ -259,7 +261,7 @@ describe("DividendComputationFlow Integration", () => {
   });
 
   it("handles preview errors", async () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
 
     // Mock error state
     api.dividends.computePreview.useMutation.mockReturnValue({
@@ -275,7 +277,7 @@ describe("DividendComputationFlow Integration", () => {
   });
 
   it("handles creation errors", async () => {
-    const { api } = require("@/trpc/react");
+    const { api } = mockApi;
 
     // Mock successful preview but failed creation
     api.dividends.createRound.useMutation.mockReturnValue({
@@ -319,12 +321,12 @@ describe("DividendComputationFlow Integration", () => {
     // Check retained status tooltip
     const retainedButton = screen.getByRole("button", { name: "Retained" });
     await user.hover(retainedButton);
-    expect(screen.getByText(/sanctions imposed/)).toBeInTheDocument();
+    expect(screen.getByText(/sanctions imposed/u)).toBeInTheDocument();
 
     // Check below threshold status tooltip
     const thresholdButton = screen.getByRole("button", { name: "Below threshold" });
     await user.hover(thresholdButton);
-    expect(screen.getByText(/minimum payout threshold/)).toBeInTheDocument();
+    expect(screen.getByText(/minimum payout threshold/u)).toBeInTheDocument();
   });
 
   it("validates form inputs before allowing preview", async () => {
