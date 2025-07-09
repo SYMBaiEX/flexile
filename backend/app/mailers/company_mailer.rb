@@ -91,4 +91,13 @@ class CompanyMailer < ApplicationMailer
 
     mail(to: administrator.email, subject: "New Flexile pricing: 1.5% + $0.50, capped at $15/payment")
   end
+
+  def dividend_payment_failed(admin_id:, dividend_round_id:, failure_reason:)
+    administrator = CompanyAdministrator.find(admin_id)
+    @company = administrator.company
+    @dividend_round = DividendRound.find(dividend_round_id)
+    @failure_reason = failure_reason
+
+    mail(to: administrator.email, subject: "🔴 Dividend payment failed for #{@company.display_name}")
+  end
 end

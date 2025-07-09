@@ -26,7 +26,7 @@ class DividendPaymentTransferUpdate
       dividends.each do |dividend|
         dividend.update!(status: Dividend::PAID, paid_at: Time.zone.parse(transfer_params.dig("data", "occurred_at")))
       end
-      CompanyInvestorMailer.dividend_payment(dividend_payment.id).deliver_later
+      CompanyInvestorMailer.dividend_payment_completed(dividend_payment.id).deliver_later
     end
   end
 

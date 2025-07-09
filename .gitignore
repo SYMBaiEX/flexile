@@ -6,6 +6,10 @@ tmp
 /blob-report/
 /playwright/.cache/
 
+# Claude
+CLAUDE.md
+.claude
+
 # Environment and configuration
 .env*
 !.env.test

@@ -1,0 +1,30 @@
+<p>Hello <%= @user.name %>,</p>
+<p><strong>Your <%= cents_format(@net_amount_in_cents, no_cents_if_whole: false) %> <%= @dividend_round.return_of_capital? ? "return of capital" : "distribution" %> from <%= @company.display_name %> is ready for payment.</strong></p>
+
+<% if @dividend_round.release_document.present? %>
+  <p><strong>Action required:</strong> Please <%= link_to("review and sign the release agreement", "#{PROTOCOL}://#{DOMAIN}/equity/dividends") %> to receive your payment.</p>
+<% end %>
+
+<p>Payment details:</p>
+<ul>
+  <li>Gross amount: <%= cents_format(@gross_amount_in_cents, no_cents_if_whole: false) %></li>
+  <li>Tax withholding (<%= @withholding_percentage %>%): <%= cents_format(@tax_amount_in_cents, no_cents_if_whole: false) %></li>
+  <li>Net amount: <%= cents_format(@net_amount_in_cents, no_cents_if_whole: false) %></li>
+</ul>
+
+<% if @user.bank_account_for_dividends.present? %>
+  <p>This payment will be sent to your bank account ending in <strong><%= @user.bank_account_for_dividends.last_four_digits %></strong>.</p>
+  <p>Processing typically takes 3-5 business days. You'll receive a confirmation email once the payment is complete.</p>
+<% else %>
+  <p><strong>Important:</strong> You haven't set up a bank account for receiving dividends yet. Please <%= link_to("add your bank details", "#{PROTOCOL}://#{DOMAIN}/settings/tax") %> to receive this payment.</p>
+<% end %>
+
+<% if @company_investor.investment_amount_in_cents.positive? %>
+  <p>Your total return on investment to date: <%= (@company_investor.cumulative_dividends_roi * 100.0).round(2) %>%</p>
+<% end %>
+
+<p>View all your distributions on your <%= link_to("dividends page", "#{PROTOCOL}://#{DOMAIN}/equity/dividends") %>.</p>
+
+<p>If you have any questions, just reply to this email.</p>
+<p>Thanks,</p>
+<p><b>The Flexile team</b></p>

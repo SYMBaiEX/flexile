@@ -54,6 +54,8 @@ class Stripe::EventHandler
       process_charge_refunded!
     when "payment_intent.succeeded", "payment_intent.payment_failed", "payment_intent.canceled"
       process_payment_intent
+    when "payment_intent.processing"
+      process_payment_intent_processing
     when "payout.paid"
       process_payout_paid!
     end
@@ -68,8 +70,24 @@ class Stripe::EventHandler
     end
 
     def process_payment_intent
-      consolidated_payment = ConsolidatedPayment.find_by!(stripe_payment_intent_id: stripe_event.data.object.id)
-      ProcessConsolidatedPaymentJob.perform_async(consolidated_payment.id)
+      # Check if it's a dividend payment first
+      if stripe_event.data.object.metadata&.payment_type == "dividend_collection"
+        dividend_round_id = stripe_event.data.object.metadata.dividend_round_id
+        dividend_round = DividendRound.find(dividend_round_id)
+        Stripe::DividendPaymentService.new(dividend_round).process_webhook(stripe_event)
+      else
+        consolidated_payment = ConsolidatedPayment.find_by!(stripe_payment_intent_id: stripe_event.data.object.id)
+        ProcessConsolidatedPaymentJob.perform_async(consolidated_payment.id)
+      end
+    end
+
+    def process_payment_intent_processing
+      # Check if it's a dividend payment
+      if stripe_event.data.object.metadata&.payment_type == "dividend_collection"
+        dividend_round_id = stripe_event.data.object.metadata.dividend_round_id
+        dividend_round = DividendRound.find(dividend_round_id)
+        Stripe::DividendPaymentService.new(dividend_round).process_webhook(stripe_event)
+      end
     end
 
     def process_payout_paid!

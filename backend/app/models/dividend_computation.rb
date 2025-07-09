@@ -53,27 +53,18 @@ class DividendComputation < ApplicationRecord
   end
 
   def generate_dividends
-    data = data_for_dividend_creation
-
-    dividend_round = company.dividend_rounds.create!(
-      issued_at: dividends_issuance_date,
-      number_of_shares: data.sum { _1[:number_of_shares] || 0 },
-      number_of_shareholders: data.map { _1[:company_investor_id] }.uniq.count,
-      status: Dividend::ISSUED,
-      total_amount_in_cents: (total_amount_in_usd * 100.to_d).to_i,
-      return_of_capital:
-    )
-
-    data.each do |dividend_attrs|
-      company.company_investors.find(dividend_attrs[:company_investor_id]).dividends.create!(
-        dividend_round:,
-        company:,
-        total_amount_in_cents: (dividend_attrs[:total_amount] * 100.to_d).to_i,
-        qualified_amount_cents: (dividend_attrs[:qualified_dividends_amount] * 100.to_d).to_i,
-        number_of_shares: dividend_attrs[:number_of_shares],
-        status: Dividend::ISSUED # TODO (sharang): set `PENDING_SIGNUP` if user.encrypted_password is ""
-      )
+    service = DividendGenerationService.new(self)
+    result = service.generate!
+    
+    unless result[:success]
+      raise StandardError, result[:errors].join(", ")
     end
+    
+    result[:dividend_round]
+  end
+
+  def dividend_creation_data
+    data_for_dividend_creation
   end
 
   def dividends_info

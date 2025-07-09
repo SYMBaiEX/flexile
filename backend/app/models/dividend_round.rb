@@ -6,6 +6,7 @@ class DividendRound < ApplicationRecord
   belongs_to :company
   has_many :dividends
   has_many :investor_dividend_rounds
+  has_one :dividend_round_payment
 
   validates :issued_at, presence: true
   validates :number_of_shares, presence: true, numericality: { greater_than_or_equal_to: 0 }
@@ -15,6 +16,15 @@ class DividendRound < ApplicationRecord
   validates :ready_for_payment, inclusion: { in: [true, false] }
 
   scope :ready_for_payment, -> { where(ready_for_payment: true) }
+
+  def initiate_stripe_payment
+    return false unless ready_for_payment
+    return false if status == "Paid"
+    
+    # Enqueue job to create payment intent
+    ProcessDividendPaymentJob.perform_async(id)
+    true
+  end
 
   def send_dividend_emails
     company.company_investors.joins(:dividends)
