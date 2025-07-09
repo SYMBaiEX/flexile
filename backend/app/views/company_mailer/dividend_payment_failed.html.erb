@@ -1,0 +1,15 @@
+<h1>Dividend payment failed for <%= @company.display_name %></h1>
+
+<p>We were unable to collect the dividend payment for round #<%= @dividend_round.id %> in the amount of $<%= number_with_delimiter(@dividend_round.total_amount_in_cents / 100.0) %>.</p>
+
+<p><strong>Reason:</strong> <%= @failure_reason %></p>
+
+<p>Please check your bank account settings and ensure you have sufficient funds to cover the dividend payment. You may need to update your payment method or contact your bank for assistance.</p>
+
+<%= link_to "Update payment settings",
+            "#{PROTOCOL}://#{DOMAIN}/administrator/settings",
+            class: "button" %>
+
+<p>If you continue to experience issues, please contact our support team at <%= SUPPORT_EMAIL %>.</p>
+
+<p>The dividend round is currently paused and will need to be reprocessed once the payment issue is resolved.</p>

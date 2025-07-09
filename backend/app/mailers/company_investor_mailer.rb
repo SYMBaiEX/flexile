@@ -29,7 +29,33 @@ class CompanyInvestorMailer < ApplicationMailer
          subject: "Upcoming #{@dividend_round.return_of_capital? ? "return of capital" : "distribution"} from #{@company.name}")
   end
 
-  def dividend_payment(dividend_payment_id)
+  def dividend_payment_ready(investor_dividend_round_id:)
+    investor_dividend_round = InvestorDividendRound.find(investor_dividend_round_id)
+    @dividend_round = investor_dividend_round.dividend_round
+    @company_investor = investor_dividend_round.company_investor
+    dividends = @dividend_round.dividends.where(company_investor_id: @company_investor.id)
+    @user = @company_investor.user
+    @company = @company_investor.company
+    @gross_amount_in_cents = dividends.sum(:total_amount_in_cents)
+
+    # Calculate tax withholding and net amount
+    if dividends.where(net_amount_in_cents: nil, withheld_tax_cents: nil).exists?
+      tax_withholding_calculator = DividendTaxWithholdingCalculator.new(@company_investor, dividends:)
+      @net_amount_in_cents = tax_withholding_calculator.net_cents
+      @tax_amount_in_cents = tax_withholding_calculator.cents_to_withhold
+      @withholding_percentage = dividends.first ? tax_withholding_calculator.withholding_percentage(dividends.first) : 0
+    else
+      @tax_amount_in_cents = dividends.sum(:withheld_tax_cents)
+      @net_amount_in_cents = dividends.sum(:net_amount_in_cents)
+      @withholding_percentage = dividends.pluck(:withholding_percentage).uniq.first || 0
+    end
+
+    mail(to: @user.email,
+         reply_to: SUPPORT_EMAIL_WITH_NAME,
+         subject: "Your #{@dividend_round.return_of_capital? ? 'return of capital' : 'distribution'} from #{@company.name} is ready")
+  end
+
+  def dividend_payment_completed(dividend_payment_id)
     @dividend_payment = DividendPayment.find(dividend_payment_id)
     @dividends = @dividend_payment.dividends.includes(:dividend_round)
 

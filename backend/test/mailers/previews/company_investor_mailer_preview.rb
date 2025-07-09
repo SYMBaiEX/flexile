@@ -5,18 +5,22 @@ class CompanyInvestorMailerPreview < ActionMailer::Preview
     CompanyInvestorMailer.dividend_issued(investor_dividend_round_id: InvestorDividendRound.first.id)
   end
 
-  def dividend_payment
+  def dividend_payment_ready
+    CompanyInvestorMailer.dividend_payment_ready(investor_dividend_round_id: InvestorDividendRound.first.id)
+  end
+
+  def dividend_payment_completed
     dividend_payment = Dividend.paid.where(withheld_tax_cents: 0).last.dividend_payments.last
-    CompanyInvestorMailer.dividend_payment(dividend_payment.id)
+    CompanyInvestorMailer.dividend_payment_completed(dividend_payment.id)
   end
 
   def equity_buyback_payment
     CompanyInvestorMailer.equity_buyback_payment(equity_buyback_payment_id: EquityBuybackPayment.last.id)
   end
 
-  def dividend_payment_with_tax
+  def dividend_payment_completed_with_tax
     dividend_payment = Dividend.paid.where.not(withheld_tax_cents: 0).last.dividend_payments.last
-    CompanyInvestorMailer.dividend_payment(dividend_payment.id)
+    CompanyInvestorMailer.dividend_payment_completed(dividend_payment.id)
   end
 
   def confirm_tax_info_reminder

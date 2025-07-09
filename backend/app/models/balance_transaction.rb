@@ -6,7 +6,8 @@ class BalanceTransaction < ApplicationRecord
   PAYMENT_INITIATED = "payment_initiated"
   PAYMENT_FAILED = "payment_failed"
   PAYMENT_CANCELLED = "payment_cancelled"
-  TRANSACTION_TYPES = [PAYMENT_INITIATED, PAYMENT_FAILED, PAYMENT_CANCELLED].freeze
+  DIVIDEND_COLLECTION = "dividend_collection"
+  TRANSACTION_TYPES = [PAYMENT_INITIATED, PAYMENT_FAILED, PAYMENT_CANCELLED, DIVIDEND_COLLECTION].freeze
 
   validates :amount_cents, presence: true, immutable: true
   validates :transaction_type, presence: true, inclusion: TRANSACTION_TYPES
